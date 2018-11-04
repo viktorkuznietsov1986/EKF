@@ -9,6 +9,10 @@ using namespace std;
 // Please note that the Eigen library does not initialize
 // VectorXd or MatrixXd objects with zeros upon creation.
 
+const float epsilon = 0.001;
+
+const float pi = 3.14159265358979323846;
+
 KalmanFilter::KalmanFilter() {
 }
 
@@ -55,4 +59,58 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   TODO:
     * update the state by using Extended Kalman Filter equations
   */
+
+  VectorXd hx = GetHx();
+
+  VectorXd y = z - hx;
+
+  MatrixXd Ht = H_.transpose();
+  MatrixXd S = H_ * P_ * Ht + R_;
+  MatrixXd Si = S.inverse();
+  MatrixXd K =  P_ * Ht * Si;
+  x_ = x_ + (K * y);
+  long x_size = x_.size();
+  MatrixXd I = MatrixXd::Identity(x_size, x_size);
+  P_ = (I - K * H_) * P_;
+}
+
+VectorXd KalmanFilter::GetHx() {
+  float px = x_[0];
+  float py = x_[1];
+  float vx = x_[2];
+  float vy = x_[3];
+
+  VectorXd hx = VectorXd(3);
+
+  if (fabs(px) < epsilon) {
+    cout << "KalmanFilter::GetHx - px == 0. Can't perform update step." << endl;
+    return hx;
+  }
+
+  float ro = sqrt(px*px + py*py);
+
+  if (fabs(ro) < epsilon) {
+    cout << "KalmanFilter::GetHx - ro == 0. Can't perform update step." << endl;
+    return hx;
+  }
+
+  float fi = atan2(py, px);
+
+  // normalize to have fi in -pi:pi.
+  while (fi < -pi || fi > pi) {
+    if (fi < -pi) {
+      fi += 2*pi;
+    }
+    else {
+      fi -= 2*pi;
+    }
+  }
+
+  cout << "fi == " << fi << endl;
+
+  float ro_dot = (px*vx - py*vy) / ro;
+
+  hx << ro, fi, ro_dot;
+
+  return hx;
 }
