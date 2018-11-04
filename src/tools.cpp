@@ -5,6 +5,8 @@ using Eigen::VectorXd;
 using Eigen::MatrixXd;
 using std::vector;
 
+const float epsilon = 0.0001;
+
 Tools::Tools() {}
 
 Tools::~Tools() {}
@@ -13,7 +15,7 @@ VectorXd Tools::CalculateRMSE(const vector<VectorXd> &estimations,
                               const vector<VectorXd> &ground_truth) {
 
     VectorXd rmse(4);
-    rmse << 0,0,0,0;
+    rmse << 0.0,0.0,0.0,0.0;
 
       // TODO: YOUR CODE HERE
 
@@ -57,8 +59,12 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
   float squared_pos_sqrt = sqrt(squared_pos);
   float squared_pos_pow3_2 = squared_pos * squared_pos_sqrt;
 
+  Hj << 0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0,
+        0.0, 0.0, 0.0, 0.0;
+
 	//check division by zero
-	if (fabs(squared_pos) < 0.001) {
+	if (fabs(squared_pos) < epsilon) {
 	    cout << "Error: division by zero!" << endl;
       return Hj;
 	}
@@ -66,16 +72,16 @@ MatrixXd Tools::CalculateJacobian(const VectorXd& x_state) {
 
 	    float dro1 = px / squared_pos_sqrt;
 	    float dro2 = py / squared_pos_sqrt;
-	    float dro3 = 0;
-	    float dro4 = 0;
+	    float dro3 = 0.0;
+	    float dro4 = 0.0;
 	    float dfi1 = -py/squared_pos;
 	    float dfi2 = px/squared_pos;
-	    float dfi3 = 0;
-	    float dfi4 = 0;
+	    float dfi3 = 0.0;
+	    float dfi4 = 0.0;
 	    float drod1 = py*(vx*py-vy*px)/squared_pos_pow3_2;
 	    float drod2 = px*(vy*px-vx*py)/squared_pos_pow3_2;
-	    float drod3 = px/squared_pos_sqrt;
-	    float drod4 = py/squared_pos_sqrt;
+	    float drod3 = px / squared_pos_sqrt;
+	    float drod4 = py / squared_pos_sqrt;
 
 	    Hj << dro1, dro2, dro3, dro4,
 	          dfi1, dfi2, dfi3, dfi4,

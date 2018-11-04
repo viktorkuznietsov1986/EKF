@@ -9,9 +9,9 @@ using namespace std;
 // Please note that the Eigen library does not initialize
 // VectorXd or MatrixXd objects with zeros upon creation.
 
-const float epsilon = 0.001;
+const double epsilon = 0.0001;
 
-const float pi = 3.14159265358979323846;
+const double pi = 3.14159265358979323846;
 
 KalmanFilter::KalmanFilter() {
 }
@@ -60,10 +60,12 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
     * update the state by using Extended Kalman Filter equations
   */
 
+  // introduce nonlinearity
   VectorXd hx = GetHx();
-
   VectorXd y = z - hx;
+  normalizeBearing(y);
 
+  // approximate the nonlinearity by using the corresponding Jacobian matrix
   MatrixXd Ht = H_.transpose();
   MatrixXd S = H_ * P_ * Ht + R_;
   MatrixXd Si = S.inverse();
@@ -74,6 +76,22 @@ void KalmanFilter::UpdateEKF(const VectorXd &z) {
   P_ = (I - K * H_) * P_;
 }
 
+void KalmanFilter::normalizeBearing(VectorXd& y) {
+  double fi = y(1);
+
+  // normalize to have fi in -pi:pi.
+  while (fi < -pi || fi > pi) {
+    if (fi < -pi) {
+      fi += 2.0*pi;
+    }
+    else {
+      fi -= 2.0*pi;
+    }
+  }
+
+  y(1) = fi;
+}
+
 VectorXd KalmanFilter::GetHx() {
   float px = x_[0];
   float py = x_[1];
@@ -82,34 +100,28 @@ VectorXd KalmanFilter::GetHx() {
 
   VectorXd hx = VectorXd(3);
 
+  hx << 0.0, 0.0, 0.0;
+
   if (fabs(px) < epsilon) {
-    cout << "KalmanFilter::GetHx - px == 0. Can't perform update step." << endl;
+    cout << "KalmanFilter::GetHx - px == 0. Can't calculate Hx." << endl;
     return hx;
   }
 
+  // get range
   float ro = sqrt(px*px + py*py);
 
   if (fabs(ro) < epsilon) {
-    cout << "KalmanFilter::GetHx - ro == 0. Can't perform update step." << endl;
+    cout << "KalmanFilter::GetHx - ro == 0. Can't calculate Hx." << endl;
     return hx;
   }
 
+  // get bearing
   float fi = atan2(py, px);
 
-  // normalize to have fi in -pi:pi.
-  while (fi < -pi || fi > pi) {
-    if (fi < -pi) {
-      fi += 2*pi;
-    }
-    else {
-      fi -= 2*pi;
-    }
-  }
+  // get radial velocity
+  float ro_dot = (px*vx + py*vy) / ro;
 
-  cout << "fi == " << fi << endl;
-
-  float ro_dot = (px*vx - py*vy) / ro;
-
+  // set up the non-linear measurement update vector
   hx << ro, fi, ro_dot;
 
   return hx;

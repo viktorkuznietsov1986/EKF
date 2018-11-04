@@ -45,8 +45,9 @@ private:
   Eigen::MatrixXd H_laser_;
   Eigen::MatrixXd Hj_;
 
-  int noise_ax;
-  int noise_ay;
+  // process and measurement noise
+  float noise_ax;
+  float noise_ay;
 };
 
 #endif /* FusionEKF_H_ */
